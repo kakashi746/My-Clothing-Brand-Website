@@ -1,0 +1,687 @@
+<?php
+// Database configuration
+$host = "localhost";
+$username = "your_username";
+$password = "your_password";
+$database = "brainrot_db";
+
+// Create connection
+$conn = new mysqli($host, $username, $password);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Create database if it doesn't exist
+$sql = "CREATE DATABASE IF NOT EXISTS $database";
+if ($conn->query($sql) === TRUE) {
+    // Switch to the database
+    $conn->select_db($database);
+
+    // Create products table if it doesn't exist
+    $sql = "CREATE TABLE IF NOT EXISTS products (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        price DECIMAL(10, 2) NOT NULL,
+        image_path VARCHAR(255) NOT NULL
+    )";
+    if ($conn->query($sql) === FALSE) {
+        die("Error creating table: " . $conn->error);
+    }
+
+    // Insert initial data if table is empty
+    $result = $conn->query("SELECT COUNT(*) as count FROM products");
+    $row = $result->fetch_assoc();
+    if ($row['count'] == 0) {
+        $initial_data = [
+            ["BrainRot Tee", "Black cotton tee with 'BRAINROT' print", 400.00, "file:///F:/Website/Screenshot%20(544).png"],
+            ["Legend Never Die Tee", "Black cotton tee with 'LEGEND NEVER DIE' print", 400.00, "file:///F:/Website/Screenshot%20(546).png"],
+            ["Resistance Tee", "Black cotton tee with 'RESISTANCE' print", 400.00, "file:///F:/Website/Screenshot%20(543).png"]
+        ];
+        foreach ($initial_data as $data) {
+            $stmt = $conn->prepare("INSERT INTO products (name, description, price, image_path) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssd", $data[0], $data[1], $data[2], $data[3]);
+            $stmt->execute();
+        }
+    }
+} else {
+    die("Error creating database: " . $conn->error);
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrainRot - Bangladeshi Streetwear</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Jost', sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+        }
+
+        header {
+            background-color: #000;
+            padding: 1rem 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid #e91e63;
+        }
+
+        nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+        }
+
+        .logo img {
+            height: 50px;
+            width: auto;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 2.5rem;
+        }
+
+        .nav-links li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .nav-links li a:hover {
+            color: #e91e63;
+        }
+
+        .nav-links li a::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            transform: scaleX(0);
+            height: 2px;
+            bottom: 0;
+            left: 0;
+            background-color: #e91e63;
+            transform-origin: bottom right;
+            transition: transform 0.25s ease-out;
+        }
+
+        .nav-links li a:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+
+        .search {
+            display: flex;
+            align-items: center;
+        }
+
+        .search input {
+            padding: 5px;
+            border: none;
+            background-color: #333;
+            color: #fff;
+            margin-right: 5px;
+        }
+
+        .search button {
+            background-color: #e91e63;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .cart {
+            color: #fff;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .cart.has-items {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .hamburger {
+            display: none;
+            cursor: pointer;
+        }
+
+        .hamburger span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background-color: #fff;
+            margin: 5px 0;
+            transition: 0.4s;
+        }
+
+        .hero {
+            height: 100vh;
+            background: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('file:///F:/Website/Screenshot%20(545).png') no-repeat center center/cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-top: 70px;
+        }
+
+        .hero-content h1 {
+            font-size: 5rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 1rem;
+            color: #fff;
+            text-shadow: 3px 3px 5px rgba(0,0,0,0.8);
+        }
+
+        .hero-content p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .cta-button {
+            background-color: #e91e63;
+            color: #fff;
+            padding: 1rem 3rem;
+            text-decoration: none;
+            text-transform: uppercase;
+            border-radius: 0;
+            font-size: 1.2rem;
+            transition: background-color 0.3s;
+        }
+
+        .cta-button:hover {
+            background-color: #c2185b;
+        }
+
+        .shop {
+            max-width: 1400px;
+            margin: 4rem auto;
+            padding: 0 30px;
+            background-color: #000;
+        }
+
+        .shop h2 {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 3rem;
+            color: #e91e63;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+        }
+
+        .product-card {
+            background: #1a1a1a;
+            border-radius: 0;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .product-card:hover {
+            transform: scale(1.05);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 500px;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .product-info h3 {
+            font-size: 1.6rem;
+            margin-bottom: 0.5rem;
+            color: #e91e63;
+            text-transform: uppercase;
+        }
+
+        .product-info p {
+            color: #ccc;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .add-to-cart {
+            background-color: #e91e63;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .add-to-cart:hover {
+            background-color: #c2185b;
+        }
+
+        .contact {
+            max-width: 1400px;
+            margin: 4rem auto;
+            padding: 0 30px;
+            background-color: #000;
+            color: #fff;
+            text-align: center;
+        }
+
+        .contact h2 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            color: #e91e63;
+        }
+
+        .contact p {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .contact a {
+            color: #e91e63;
+            text-decoration: none;
+        }
+
+        .contact a:hover {
+            text-decoration: underline;
+        }
+
+        #cart {
+            max-width: 1400px;
+            margin: 4rem auto;
+            padding: 0 30px;
+            background-color: #1a1a1a;
+            padding: 2rem;
+            color: #fff;
+            display: none;
+            text-align: center;
+        }
+
+        #cart h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: #e91e63;
+        }
+
+        #cart-items div {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #2a2a2a;
+        }
+
+        #cart-items h4 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #cart-items p {
+            margin: 0.2rem 0;
+        }
+
+        .remove-from-cart {
+            background-color: #e91e63;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+
+        .remove-from-cart:hover {
+            background-color: #c2185b;
+        }
+
+        #bKash_button {
+            background-color: #e91e63;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 1rem;
+            text-transform: uppercase;
+            margin-top: 1rem;
+        }
+
+        #bKash_button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+
+        footer {
+            background-color: #000;
+            color: #fff;
+            padding: 3rem 0;
+            text-align: center;
+            border-top: 1px solid #e91e63;
+        }
+
+        footer p {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .social-links a {
+            color: #fff;
+            margin: 0 1.5rem;
+            text-decoration: none;
+            font-size: 1.3rem;
+            transition: color 0.3s;
+        }
+
+        .social-links a:hover {
+            color: #e91e63;
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 3rem;
+            }
+
+            .hero-content p {
+                font-size: 1.2rem;
+            }
+
+            .nav-links {
+                gap: 1.5rem;
+            }
+
+            .shop h2 {
+                font-size: 2rem;
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-card img {
+                height: 300px;
+            }
+
+            .logo img {
+                height: 40px;
+            }
+
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                width: 100%;
+                background-color: #000;
+                padding: 1rem 0;
+            }
+
+            .nav-links.active {
+                display: flex;
+            }
+
+            .hamburger {
+                display: block;
+            }
+
+            .search {
+                display: none;
+            }
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <img src="file:///F:/Website/Screenshot%20(547).png" alt="BrainRot Logo">
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#shop">Shop</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <div class="search">
+                <input type="text" id="searchInput" placeholder="Search...">
+                <button onclick="searchProducts()">Search</button>
+            </div>
+            <div class="cart">
+                <span id="cart-count">0</span> items in cart
+            </div>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>BrainRot Dhaka</h1>
+            <p>Streetwear That Speaks for Bangladesh</p>
+            <a href="#shop" class="cta-button">Shop Now</a>
+        </div>
+    </section>
+
+    <section class="shop" id="shop">
+        <h2>Our Collection</h2>
+        <div class="product-grid" id="product-grid">
+            <?php
+            // Fetch products from database
+            $sql = "SELECT * FROM products";
+            $result = $conn->query($sql);
+
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    echo '<div class="product-card" data-product-id="' . $row['id'] . '" data-product-name="' . htmlspecialchars($row['name']) . '">';
+                    echo '<img src="' . htmlspecialchars($row['image_path']) . '" alt="' . htmlspecialchars($row['name']) . '">';
+                    echo '<div class="product-info">';
+                    echo '<h3>' . htmlspecialchars($row['name']) . '</h3>';
+                    echo '<p>' . htmlspecialchars($row['description']) . '</p>';
+                    echo '<p><strong>BDT ' . number_format($row['price'], 2) . '</strong></p>';
+                    echo '<button class="add-to-cart">Add to Cart</button>';
+                    echo '</div>';
+                    echo '</div>';
+                }
+            } else {
+                echo '<p>No products available.</p>';
+            }
+            ?>
+        </div>
+    </section>
+
+    <section id="contact" class="contact">
+        <h2>Contact Us</h2>
+        <p><a href="tel:01983027130">Phone: 01983027130</a></p>
+        <p><a href="mailto:sazzadhossain74274@gmail.com">Email: sazzadhossain74274@gmail.com</a></p>
+    </section>
+
+    <section id="cart">
+        <h2>Your Cart</h2>
+        <div id="cart-items"></div>
+        <p>Total: <span id="cart-total">0</span> BDT</p>
+        <button id="bKash_button" disabled="disabled">Pay With bKash</button>
+        <p>For manual payment, please send money to bKash account: 01889242042</p>
+    </section>
+
+    <footer>
+        <p>© 2025 BrainRot. All Rights Reserved.</p>
+        <div class="social-links">
+            <a href="#">Facebook</a>
+            <a href="#">Instagram</a>
+            <a href="#">Twitter</a>
+        </div>
+    </footer>
+
+    <script>
+        let cart = [];
+
+        const hamburger = document.querySelector('.hamburger');
+        const navLinks = document.querySelector('.nav-links');
+
+        hamburger.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        });
+
+        document.querySelectorAll('.add-to-cart').forEach(button => {
+            button.addEventListener('click', addToCart);
+        });
+
+        document.querySelector('.cart').addEventListener('click', () => {
+            document.getElementById('cart').style.display = 'block';
+            document.getElementById('cart').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        function addToCart(event) {
+            const button = event.target;
+            const productCard = button.closest('.product-card');
+            const id = productCard.dataset.productId;
+            const name = productCard.querySelector('h3').textContent;
+            const price = parseFloat(productCard.querySelector('p strong').textContent.replace('BDT ', ''));
+
+            const existingProduct = cart.find(item => item.id === id);
+            if (existingProduct) {
+                existingProduct.quantity += 1;
+            } else {
+                cart.push({ id, name, price, quantity: 1 });
+            }
+
+            updateCartDisplay();
+        }
+
+        function updateCartDisplay() {
+            const cartItemsDiv = document.getElementById('cart-items');
+            cartItemsDiv.innerHTML = '';
+            let total = 0;
+            cart.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.innerHTML = `
+                    <h4>${item.name}</h4>
+                    <p>Price: BDT ${item.price}</p>
+                    <p>Quantity: ${item.quantity}</p>
+                    <button class="remove-from-cart" data-id="${item.id}">Remove</button>
+                `;
+                cartItemsDiv.appendChild(itemDiv);
+                total += item.price * item.quantity;
+            });
+            document.getElementById('cart-total').textContent = total.toFixed(2);
+            document.getElementById('cart-count').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+            if (total > 0) {
+                document.querySelector('.cart').classList.add('has-items');
+                document.getElementById('bKash_button').disabled = false;
+            } else {
+                document.querySelector('.cart').classList.remove('has-items');
+                document.getElementById('bKash_button').disabled = true;
+            }
+
+            document.querySelectorAll('.remove-from-cart').forEach(button => {
+                button.addEventListener('click', removeFromCart);
+            });
+        }
+
+        function removeFromCart(event) {
+            const button = event.target;
+            const id = button.dataset.id;
+            cart = cart.filter(item => item.id !== id);
+            updateCartDisplay();
+        }
+
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const sectionId = this.getAttribute('href');
+                document.querySelector(sectionId).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        function searchProducts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const productCards = document.querySelectorAll('.product-card');
+            productCards.forEach(card => {
+                const productName = card.dataset.productName.toLowerCase();
+                if (productName.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        const productCards = document.querySelectorAll('.product-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = 1;
+                    entry.target.style.transform = 'scale(1)';
+                }
+            });
+        }, {
+            threshold: 0.2
+        });
+
+        productCards.forEach(card => {
+            card.style.opacity = 0;
+            card.style.transform = 'scale(0.95)';
+            card.style.transition = 'all 0.5s';
+            observer.observe(card);
+        });
+
+        document.getElementById('bKash_button').addEventListener('click', function() {
+            var total = parseFloat(document.getElementById('cart-total').textContent);
+            if (!isNaN(total) && total > 0) {
+                alert('Proceeding to pay ' + total + ' BDT with bKash');
+            } else {
+                alert('Cart is empty');
+            }
+        });
+    </script>
+</body>
+</html>
+
+<?php
+$conn->close();
+?>
